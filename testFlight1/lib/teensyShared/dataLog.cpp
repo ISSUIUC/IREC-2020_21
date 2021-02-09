@@ -40,7 +40,7 @@ void init_dataLog(File* dataFile) {
 
     Serial.println(fileName);
     *dataFile = SD.open(fileName, O_CREAT | O_WRITE | O_TRUNC);
-    dataFile->println("ax, ay, az, gx, gy, gz, mx, my, mz, hg_ax, hg_ay, hg_az, latitude, longitude, altitude, rocketState, timeStamp");
+    dataFile->println("ax, ay, az, gx, gy, gz, mx, my, mz, hg_ax, hg_ay, hg_az, latitude, longitude, altitude, rocketState, GPS Position Lock, timeStamp");
 
 }
 
@@ -48,39 +48,42 @@ void init_dataLog(File* dataFile) {
 void logData(File* dataFile, dataStruct_t* data, FSM_State rocketState) {
 
     //TODO: make this just use one print
-    dataFile->print(data->ax);
+    //TODO: log GPS timestamps
+    dataFile->print(data->ax, 4);
     dataFile->print(",");
-    dataFile->print(data->ay);
+    dataFile->print(data->ay, 4);
     dataFile->print(",");
-    dataFile->print(data->az);
+    dataFile->print(data->az, 4);
     dataFile->print(",");
-    dataFile->print(data->gx);
+    dataFile->print(data->gx, 4);
     dataFile->print(",");
-    dataFile->print(data->gy);
+    dataFile->print(data->gy, 4);
     dataFile->print(",");
-    dataFile->print(data->gz);
+    dataFile->print(data->gz, 4);
     dataFile->print(",");
-    dataFile->print(data->mx);
+    dataFile->print(data->mx, 4);
     dataFile->print(",");
-    dataFile->print(data->my);
+    dataFile->print(data->my, 4);
     dataFile->print(",");
-    dataFile->print(data->mz);
+    dataFile->print(data->mz, 4);
     dataFile->print(",");
     //!highG imu data
-    dataFile->print(data->hg_ax);
+    dataFile->print(data->hg_ax, 4);
     dataFile->print(",");
-    dataFile->print(data->hg_ay);
+    dataFile->print(data->hg_ay, 4);
     dataFile->print(",");
-    dataFile->print(data->hg_az);
+    dataFile->print(data->hg_az, 4);
     dataFile->print(",");
 
-    dataFile->print(data->latitude);
+    dataFile->print(data->latitude, 6);
     dataFile->print(",");
-    dataFile->print(data->longitude);
+    dataFile->print(data->longitude, 6);
     dataFile->print(",");
-    dataFile->print(data->altitude);
+    dataFile->print(data->altitude, 6);
     dataFile->print(",");
     dataFile->print(rocketState);
+    dataFile->print(",");
+    dataFile->print(data->posLock);
     dataFile->print(",");
     dataFile->print(data->timeStamp);
     dataFile->print("\n");

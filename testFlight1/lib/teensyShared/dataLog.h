@@ -29,6 +29,7 @@ struct dataStruct_t {
     float latitude;
     float longitude;
     float altitude;
+    bool posLock;
     
     int32_t timeStamp;
 

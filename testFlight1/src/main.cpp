@@ -13,9 +13,9 @@
 #include "thresholds.h"
 #include "pins.h"
 
-//#define THREAD_DEBUG
-//#define IMU_DEBUG
-//#define GPS_DEBUG
+#define THREAD_DEBUG
+#define IMU_DEBUG
+#define GPS_DEBUG
 
 //changed name to account for both high & lowG (logGData)
 dataStruct_t sensorData;
@@ -99,6 +99,7 @@ static THD_FUNCTION(sensor_THD, arg){
     sensorData.latitude = gps.get_latitude();
     sensorData.longitude = gps.get_longitude();
     sensorData.altitude = gps.get_altitude();
+    sensorData.posLock = gps.get_position_lock();
 
     #ifdef GPS_DEBUG
         Serial.println("------------- GPS ---------------");
@@ -131,8 +132,10 @@ void chSetup(){
 }
 
 void setup() {
-  //Serial.begin(115200);
-  //while (!Serial) {}
+  #if defined(THREAD_DEBUG) || defined(IMU_DEBUG) || defined(GPS_DEBUG)
+    Serial.begin(115200);
+    while (!Serial) {}
+  #endif
 
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
@@ -145,7 +148,7 @@ void setup() {
     while (true);
   }
 
-  lowGimu.setAccelScale(16);
+  lowGimu.setAccelScale(8);
   
   //GPS Setup
  	gps.beginSPI(ZOEM8Q0_CS);
