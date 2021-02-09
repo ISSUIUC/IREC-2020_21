@@ -30,17 +30,17 @@ int16_t KX134::get_z_accel_raw() {
 //  Range from -64 to 64 Gs. 511.98 obtained by dividing 32767 (max decimal) by 64 (mag gs)
 float KX134::get_x_gforce() {
     int16_t decimal = get_x_accel_raw();
-    float gForce = (float)decimal / 511.98;
+    float gForce = (float)decimal / 2048;
     return gForce;
 }
 float KX134::get_y_gforce() {
     int16_t decimal = get_y_accel_raw();
-    float gForce = (float)decimal / 511.98;
+    float gForce = (float)decimal / 2048;
     return gForce;
 }
 float KX134::get_z_gforce() {
     int16_t decimal = get_z_accel_raw();
-    float gForce = (float)decimal / 511.98;
+    float gForce = (float)decimal / 2048;
     return gForce;
 }
 
@@ -59,40 +59,6 @@ float KX134::get_z_accel() {
     return gForce * 9.8;
 }
 
-/*
-    Converts the binary from the raw data to decimal form
-    < 32767 is positive, > 32767 is negative, -32768 is essentially zero
-
-    0000 0000 0000 0001   --   1
-    0000 0000 0000 0000   --   0
-    1111 1111 1111 1111   --   -1
-    0111 1111 1111 1111   --   32767
-    1000 0000 0000 0000   --  -32768 (essentially zero)
-    1000 0000 0000 0001   --  -32767
-*/
-
-//!binary to decimal not needed because input/output are already binary
-//!Conversion may add bugs
-// int16_t KX134::binary_to_decimal(int16_t binary) {
-//     int16_t temp;
-//     int16_t decimal = 0;
-//     int16_t base = 1;
-
-//     while (binary > 0) {
-//         temp = binary % 10;
-//         decimal = decimal + temp * base;
-//         binary = binary / 10;
-//         base = base * 2;
-//     }
-//     if (decimal > 32768) {
-//         decimal = decimal - 32768;
-//         decimal = -(32768 - decimal);
-//     } else if (decimal == 32768) {
-//         return 0;
-//     }
-//     return decimal;
-// }
-
 void KX134::init()
 {
     SPI.begin();
@@ -105,7 +71,7 @@ void KX134::init()
     // Set PC1 bit of CNTL1 register to enable measurements
     digitalWrite(KX134_CS_PIN, LOW);   // select chip
     SPI.transfer(CNTL1);
-    SPI.transfer(0x98);
+    SPI.transfer(0x88);
     digitalWrite(KX134_CS_PIN, HIGH);   // de-select chip
 
 }
@@ -138,22 +104,3 @@ void KX134::update_data()
 #endif
 
 }
-
-
-/*
-
-<data[1]> 00000000
-00000000  <data[0]>
-------------------- BITWISE OR
-<data[1]> <data[0]>
-
-
-
-XOUT_L
-XOUT_H
-YOUT_L
-YOUT_H
-ZOUT_L
-ZOUT_H
-
-*/
