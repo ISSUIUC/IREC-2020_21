@@ -13,9 +13,9 @@
 #include "thresholds.h"
 #include "pins.h"
 
-#define THREAD_DEBUG
-#define IMU_DEBUG
-#define GPS_DEBUG
+//#define THREAD_DEBUG
+//#define IMU_DEBUG
+//#define GPS_DEBUG
 
 //changed name to account for both high & lowG (logGData)
 dataStruct_t sensorData;
@@ -101,6 +101,12 @@ static THD_FUNCTION(sensor_THD, arg){
     sensorData.altitude = gps.get_altitude();
     sensorData.posLock = gps.get_position_lock();
 
+    if(sensorData.posLock == true){
+      digitalWrite(LED_ORANGE, HIGH);
+    }else{
+      digitalWrite(LED_ORANGE, LOW);
+    }
+
     #ifdef GPS_DEBUG
         Serial.println("------------- GPS ---------------");
       bool position_lock = gps.get_position_lock();
@@ -139,6 +145,9 @@ void setup() {
 
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
+
+  pinMode(LED_ORANGE, OUTPUT);
+  digitalWrite(LED_ORANGE, LOW);
 
   //lowGimu setup
   if (lowGimu.beginSPI(LSM9DS1_AG_CS, LSM9DS1_M_CS) == false) // note, we need to sent this our CS pins (defined above)
