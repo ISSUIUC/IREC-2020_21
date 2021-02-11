@@ -153,7 +153,9 @@ void setup() {
   if (lowGimu.beginSPI(LSM9DS1_AG_CS, LSM9DS1_M_CS) == false) // note, we need to sent this our CS pins (defined above)
   {
     digitalWrite(LED_RED, HIGH);
-    Serial.println("Failed to communicate with LSM9DS1. Stalling Program");
+    #if defined(IMU_DEBUG) || defined(GPS_DEBUG)
+      Serial.println("Failed to communicate with LSM9DS1. Stalling Program");
+    #endif
     while (true);
   }
 
@@ -168,11 +170,15 @@ void setup() {
   }
   else {
     digitalWrite(LED_RED, HIGH);
-    Serial.println("SD Begin Failed. Stalling Program");
+    #if defined(IMU_DEBUG) || defined(GPS_DEBUG)
+      Serial.println("SD Begin Failed. Stalling Program");
+    #endif
     while(true);
   }
 
-  Serial.println("Starting ChibiOS");
+  #if defined(IMU_DEBUG) || defined(GPS_DEBUG)
+    Serial.println("Starting ChibiOS");
+  #endif
   chBegin(chSetup);
   while(true);
  
