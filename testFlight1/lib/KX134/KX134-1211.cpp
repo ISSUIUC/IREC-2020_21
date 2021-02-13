@@ -30,17 +30,17 @@ int16_t KX134::get_z_accel_raw() {
 //  Range from -64 to 64 Gs. 511.98 obtained by dividing 32767 (max decimal) by 64 (mag gs)
 float KX134::get_x_gforce() {
     int16_t decimal = get_x_accel_raw();
-    float gForce = (float)decimal / 2048;
+    float gForce = (float)decimal / 512;
     return gForce;
 }
 float KX134::get_y_gforce() {
     int16_t decimal = get_y_accel_raw();
-    float gForce = (float)decimal / 2048;
+    float gForce = (float)decimal / 512;
     return gForce;
 }
 float KX134::get_z_gforce() {
     int16_t decimal = get_z_accel_raw();
-    float gForce = (float)decimal / 2048;
+    float gForce = (float)decimal / 512;
     return gForce;
 }
 
@@ -71,7 +71,8 @@ void KX134::init()
     // Set PC1 bit of CNTL1 register to enable measurements
     digitalWrite(KX134_CS_PIN, LOW);   // select chip
     SPI.transfer(CNTL1);
-    SPI.transfer(0x88);
+    //TODO switch to 88 for +-16 Gs
+    SPI.transfer(0x98);
     digitalWrite(KX134_CS_PIN, HIGH);   // de-select chip
 
 }
