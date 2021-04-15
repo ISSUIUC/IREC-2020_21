@@ -45,20 +45,20 @@ void body_to_inertial(float C_body_to_init[3][3], float q0, float q1, float q2, 
 //Write a function for converting specific force to inertial frame accel
 void specf_to_ai(float *aix, float* aiy, float *aiz, float ax, float ay, float az, float rotate[3][3]) {
   float specfi[3] = {}; //accelerations in reference frame
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 3; i++) {
     specfi[i] = rotate[i][0]*ax + rotate[i][1]*ay + rotate[i][2]*az;
     // Converting g's into m/s^2
     specfi[i] *= 9.81;
   }
   //Adding gravity:
-  *aix = specfi[0] - 9.81;
+  *aix = specfi[0];
   *aiy = specfi[1];
-  *aiz = specfi[2];
+  *aiz = specfi[2] - 9.81;
 }
 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   //setup lowg IMU
   if (lowGimu.beginSPI(LSM9DS1_AG_CS, LSM9DS1_M_CS) == false) // note, we need to sent this our CS pins (defined above)
@@ -111,12 +111,18 @@ void loop() {
     q1 = filter.getq1();
     q2 = filter.getq2();
     q3 = filter.getq3();
-    Serial.print("Orientation: ");
     Serial.print(yaw);
     Serial.print(" ");
     Serial.print(pitch);
     Serial.print(" ");
-    Serial.println(roll);
+    Serial.print(roll);
+    Serial.print(" ");
+    Serial.print(ax);
+    Serial.print(" ");
+    Serial.print(ay);
+    Serial.print(" ");
+    Serial.print(az);
+    Serial.print(" ");
 
     // Getting the co-ordinate transformation matrix for body to inertial frame
     float Body_to_Inertial[3][3];
@@ -126,6 +132,12 @@ void loop() {
     float aix, aiy, aiz;
     specf_to_ai(&aix, &aiy, &aiz, ax, ay, az, Body_to_Inertial);
 
+    Serial.print(aix);
+    Serial.print(" ");
+    Serial.print(aiy);
+    Serial.print(" ");
+    Serial.print(aiz);
+    Serial.print(" ");
 
     //Integrate acceleration to get velocities (Groves, pg. 171)
     vx += aix*time_step;
@@ -133,10 +145,17 @@ void loop() {
     vz += aiz*time_step;
 
     //Position update (Groves, pg. 172)
-    x += vx*time_step -  (float) (aix * time_step * time_step)/ (float) 2;
-    y += vy*time_step -  (float) (aiy * time_step * time_step)/ (float) 2;
-    z += vz*time_step -  (float) (aiz * time_step * time_step)/ (float) 2;
-    
+    x += vx*time_step - (float) (aix * time_step * time_step)/ (float) 2;
+    y += vy*time_step - (float) (aiy * time_step * time_step)/ (float) 2;
+    z += vz*time_step - (float) (aiz * time_step * time_step)/ (float) 2;
+
+    Serial.print(vx);
+    Serial.print(" ");
+    Serial.print(vy);
+    Serial.print(" ");
+    Serial.print(vz);
+    Serial.print("\n\r");
+
 
     // increment previous time, so we keep proper pace
     microsPrevious = microsPrevious + microsPerReading;
