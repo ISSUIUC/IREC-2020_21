@@ -4,7 +4,7 @@
 #include <ChRt.h>
 #include <Arduino.h>
 #define INTERVAL_MS 500
-#define ERR_THRESHOLD 40
+#define ERR_THRESHOLD 60
 #define READ_PORT 39
 #define WRITE_PORT 38
 
