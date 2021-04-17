@@ -5,8 +5,8 @@
 #include <Arduino.h>
 #define INTERVAL_MS 500
 #define ERR_THRESHOLD 60
-#define READ_PORT 27
-#define WRITE_PORT 26
+#define READ_PORT 26
+#define WRITE_PORT 27
 
 static THD_WORKING_AREA(pulse_sender_WA, 512);
 static THD_WORKING_AREA(pulse_receiver_WA, 512);
