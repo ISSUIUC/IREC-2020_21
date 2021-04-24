@@ -49,7 +49,8 @@ static void toggle_read() {
   }
 }
 static THD_FUNCTION(pulse_receiver_THD, arg) {
-  read_val = digitalRead(/*INSERT PIN*/ READ_PORT);;
+  read_val = digitalRead(/*INSERT PIN*/ READ_PORT);
+  read_val != read_val;
   chVTObjectInit(&read_vt);
   chVTSet(&read_vt, TIME_MS2I(INTERVAL_MS), toggle_read, NULL);
 }
