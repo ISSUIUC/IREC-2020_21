@@ -17,8 +17,8 @@ static void toggle_write() {
   chSysLockFromISR();
   chVTSetI(&write_vt, TIME_MS2I(INTERVAL_MS), toggle_write, NULL);
   chSysUnlockFromISR();
-  Serial.println("teensy1 writing");
   digitalWrite(/*INSERT PIN*/ WRITE_PORT, write_val);
+  Serial.printf("writing %d", write_val);
   write_val = !write_val;
 }
 static THD_FUNCTION(pulse_sender_THD, arg) {
@@ -34,9 +34,8 @@ static void toggle_read() {
   chSysLockFromISR();
   chVTSetI(&read_vt, TIME_MS2I(INTERVAL_MS), toggle_read, NULL);
   chSysUnlockFromISR();
-  Serial.println("teensy1 reading");
   int received = digitalRead(/*INSERT PIN*/ READ_PORT);
-  Serial.println(received);
+  Serial.printf("read %d", received);
   if (received != read_val) {
     num_missed++;
   } else {
