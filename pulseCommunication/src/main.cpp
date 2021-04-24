@@ -71,6 +71,8 @@ void chSetup(){
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting ChibiOS");
+  pinMode(READ_PORT, INPUT);
+  pinMode(WRITE_PORT, OUTPUT);
   chBegin(chSetup);
 
   while(true);
