@@ -10,12 +10,27 @@
 
 #include <stdint.h>
 
+
 #define SENTINEL_1 0x49     // ascii I
 #define SENTINEL_2 0x53     // ascii S
 #define SENTINEL_3 0x53     // ascii S
 
 #define INPUT_BUF_SIZE  128
 #define OUTPUT_BUF_SIZE 128
+
+enum FSM_State {
+    STATE_INIT,
+    STATE_IDLE,
+    STATE_LAUNCH_DETECT,
+    STATE_BOOST,
+    STATE_BURNOUT_DETECT,
+    STATE_COAST,
+    STATE_APOGEE_DETECT,
+    STATE_APOGEE,
+    STATE_DROGUE,
+    STATE_MAIN
+};
+
 
 typedef struct dataPacket_t {
     float ax;
@@ -28,7 +43,7 @@ typedef struct dataPacket_t {
     float my;
     float mz;
 
-    //! data for highGimu accel data (hg_x, hg_y, hg_z) 
+    //! data for highGimu accel data (hg_x, hg_y, hg_z)
     float hg_ax;
     float hg_ay;
     float hg_az;
@@ -40,8 +55,9 @@ typedef struct dataPacket_t {
     float latitude;
     float longitude;
     float altitude;
-    bool posLock;
-    
+    // bool posLock;
+
+    // FSM_State rocketState;
     int32_t timeStamp;
 
 };

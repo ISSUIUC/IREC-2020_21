@@ -66,7 +66,7 @@ static THD_FUNCTION(servo_THD, arg){
   bool active_control = false;
   while(true){
     #ifdef THREAD_DEBUG
-      Serial.println("### Servo thread entrance");
+      // Serial.println("### Servo thread entrance");
     #endif
     
     int ccw_angle = -90; // Give different starting values 
@@ -74,7 +74,7 @@ static THD_FUNCTION(servo_THD, arg){
     active_control = false;
 
     sensorDataStruct_t *current_data;
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_state);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_state);
     current_data = pointer_struct->sensorDataPointer->state_data;
 
     //Get state data
@@ -82,12 +82,12 @@ static THD_FUNCTION(servo_THD, arg){
     float vx = current_data.state_vx;
     float x = current_data.state_x;
 
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_state);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_state);
     float u[1][2] = {{}}; //Inputs to the servo
 
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_RS);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
     FSM_State currentRocketState = pointer_struct->sensorDataPointer->rocketState_data.rocketState;
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_RS);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
 
     switch(currentRocketState) {
       case STATE_INIT:

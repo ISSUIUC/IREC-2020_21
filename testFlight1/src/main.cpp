@@ -32,7 +32,7 @@
 //#define SERVO_DEBUG
 
 //changed name to account for both high & lowG (logGData)
-// sensorDataStruct_t gpsSensorData;
+sensorDataStruct_t sensorData;
 // sensorDataStruct_t lowgSensorData;
 // sensorDataStruct_t highgSensorData;
 
@@ -72,11 +72,11 @@ static THD_FUNCTION(mpuComm_THD, arg){
   while (true) {
 
     #ifdef THREAD_DEBUG
-      Serial.println("### mpuComm thread entrance");
+      // Serial.println("### mpuComm thread entrance");
     #endif
 
     //!locking data from sensorData struct
-    chMtxLock(&sensor_pointers.dataloggerTHDVarsPointer->dataMutex_lowG);
+    chMtxLock(&sensor_pointers.dataloggerTHDVarsPointer.dataMutex_lowG);
 
     digitalWrite(LED_WHITE, HIGH);
 
@@ -86,7 +86,7 @@ static THD_FUNCTION(mpuComm_THD, arg){
     uint8_t* data = (uint8_t*) &sensor_pointers.sensorDataPointer->lowG_data;
 
     //!Unlocking &dataMutex
-    chMtxUnlock(&sensor_pointers.dataloggerTHDVarsPointer->dataMutex_lowG);
+    chMtxUnlock(&sensor_pointers.dataloggerTHDVarsPointer.dataMutex_lowG);
 
     mpu_data[0] = 0x49;
     mpu_data[1] = 0x53;
@@ -120,17 +120,18 @@ static THD_FUNCTION(mpuComm_THD, arg){
 
 //
 static THD_FUNCTION(rocket_FSM, arg){
-  (void)arg;
+  struct pointers *pointer_struct = (struct pointers *)arg;
   while(true){
 
     #ifdef THREAD_DEBUG
-      Serial.println("### Rocket FSM thread entrance");
+      // Serial.println("### Rocket FSM thread entrance");
     #endif
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // TODO - Acquire lock on data struct!
-      chMtxLock(&sensor_pointers.dataloggerTHDVarsPointer->dataMutex_lowG);
-      switch (rocketState) {
+      chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_lowG);
+      chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
+      switch (pointer_struct->sensorDataPointer->rocketState_data.rocketState) {
             case STATE_INIT:
                 // TODO
             break;
@@ -141,7 +142,7 @@ static THD_FUNCTION(rocket_FSM, arg){
                 //!locking mutex to get data from sensorData struct
                 if(sensor_pointers.sensorDataPointer->lowG_data.az > launch_az_thresh) {
                     rocketTimers.launch_time = chVTGetSystemTime();
-                    rocketState = STATE_LAUNCH_DETECT;
+                    pointer_struct->sensorDataPointer->rocketState_data.rocketState = STATE_LAUNCH_DETECT;
                 }
                 //!unlocking &dataMutex mutex
 
@@ -152,7 +153,7 @@ static THD_FUNCTION(rocket_FSM, arg){
                 //If the acceleration was too brief, go back to IDLE
                 //!locking mutex to get data from sensorData struct
                 if (sensor_pointers.sensorDataPointer->lowG_data.az < launch_az_thresh) {
-                    rocketState = STATE_IDLE;
+                    pointer_struct->sensorDataPointer->rocketState_data.rocketState = STATE_IDLE;
                     break;
                 }
                 //!unlocking &dataMutex mutex
@@ -163,7 +164,7 @@ static THD_FUNCTION(rocket_FSM, arg){
 
                 // If the acceleration lasts long enough, boost is detected
                 if (rocketTimers.burn_timer > launch_time_thresh) {
-                    rocketState = STATE_BOOST;
+                    pointer_struct->sensorDataPointer->rocketState_data.rocketState = STATE_BOOST;
                     digitalWrite(LED_RED, HIGH);
                 }
 
@@ -175,7 +176,7 @@ static THD_FUNCTION(rocket_FSM, arg){
             //!locking mutex to get data from sensorData struct
             if (sensor_pointers.sensorDataPointer->lowG_data.az < coast_thresh) {
                 rocketTimers.burnout_time = chVTGetSystemTime();
-                rocketState = STATE_BURNOUT_DETECT;
+                pointer_struct->sensorDataPointer->rocketState_data.rocketState = STATE_BURNOUT_DETECT;
             }
             //!unlocking &dataMutex mutex
 
@@ -186,7 +187,7 @@ static THD_FUNCTION(rocket_FSM, arg){
                 //If the low acceleration was too brief, go back to BOOST
                 //!locking mutex to get data from sensorData struct
                 if (sensor_pointers.sensorDataPointer->lowG_data.az > coast_thresh) {
-                    rocketState = STATE_BOOST;
+                    pointer_struct->sensorDataPointer->rocketState_data.rocketState = STATE_BOOST;
                     break;
                 }
                 //!unlocking &dataMutex mutex
@@ -197,7 +198,7 @@ static THD_FUNCTION(rocket_FSM, arg){
 
                 // If the low acceleration lasts long enough, coast is detected
                 if (rocketTimers.coast_timer > coast_time_thresh) {
-                    rocketState = STATE_BOOST;
+                    pointer_struct->sensorDataPointer->rocketState_data.rocketState = STATE_BOOST;
                 }
 
             break;
@@ -223,7 +224,23 @@ static THD_FUNCTION(rocket_FSM, arg){
             break;
 
         }
-        chMtxUnlock(&sensor_pointers.dataloggerTHDVarsPointer->dataMutex_lowG);
+        chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
+        chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_lowG);
+        
+
+        // add the data to the buffer here!
+        if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_RS, TIME_IMMEDIATE) != MSG_OK) {
+            pointer_struct->dataloggerTHDVarsPointer.bufferErrors_RS++;
+            digitalWrite(LED_BUILTIN, HIGH);
+            continue;
+        }
+        chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
+        pointer_struct->dataloggerTHDVarsPointer.fifoArray[pointer_struct->dataloggerTHDVarsPointer.fifoHead_GPS].rocketState_data = pointer_struct->sensorDataPointer->rocketState_data;
+        pointer_struct->dataloggerTHDVarsPointer.bufferErrors_RS = 0;
+        pointer_struct->dataloggerTHDVarsPointer.fifoHead_RS = pointer_struct->dataloggerTHDVarsPointer.fifoHead_RS < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer.fifoHead_RS + 1 : 0;
+        chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoData_RS);
+        //!Unlocking &dataMutex
+        chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
 
         
 
@@ -238,14 +255,14 @@ static THD_FUNCTION(rocket_FSM, arg){
 void chSetup(){
   //added play_THD for creation
 
-  chThdCreateStatic(rocket_FSM_WA, sizeof(rocket_FSM_WA), NORMALPRIO, rocket_FSM, NULL);
+  chThdCreateStatic(rocket_FSM_WA, sizeof(rocket_FSM_WA), NORMALPRIO, rocket_FSM, &sensor_pointers);
   chThdCreateStatic(gps_WA, sizeof(gps_WA), NORMALPRIO, gps_THD, &sensor_pointers);
   chThdCreateStatic(lowgIMU_WA, sizeof(lowgIMU_WA), NORMALPRIO, lowgIMU_THD, &sensor_pointers);
   chThdCreateStatic(highgIMU_WA, sizeof(highgIMU_WA), NORMALPRIO, highgIMU_THD, &sensor_pointers);
   chThdCreateStatic(servo_WA, sizeof(servo_WA), NORMALPRIO, servo_THD, &sensor_pointers);
   chThdCreateStatic(lowg_dataLogger_WA, sizeof(lowg_dataLogger_WA), NORMALPRIO, dataLogger_THD, &sensor_pointers);
-  chThdCreateStatic(highg_dataLogger_WA, sizeof(highg_dataLogger_WA), NORMALPRIO, dataLogger_THD, &sensor_pointers);
-  chThdCreateStatic(gps_dataLogger_WA, sizeof(gps_dataLogger_WA), NORMALPRIO, dataLogger_THD, &sensor_pointers);
+  // chThdCreateStatic(highg_dataLogger_WA, sizeof(highg_dataLogger_WA), NORMALPRIO, dataLogger_THD, &sensor_pointers);
+  // chThdCreateStatic(gps_dataLogger_WA, sizeof(gps_dataLogger_WA), NORMALPRIO, dataLogger_THD, &sensor_pointers);
   chThdCreateStatic(mpuComm_WA, sizeof(mpuComm_WA), NORMALPRIO, mpuComm_THD, NULL);
 
   while(true);
@@ -290,11 +307,12 @@ void setup() {
   sensor_pointers.lowGimuPointer = &lowGimu;
   sensor_pointers.highGimuPointer = &highGimu;
   sensor_pointers.GPSPointer = &gps;
+  sensor_pointers.sensorDataPointer = &sensorData;
 
   // TODO: fix servo stuff to conform with new organizational structure used with sensors.
-  servo_pntr.rocketStatePointer = &rocketState;
-  servo_pntr.lowgSensorDataPointer = sensor_pointers.sensorDataPointer;
-  servo_pntr.lowgDataloggerTHDVarsPointer = sensor_pointers.dataloggerTHDVarsPointer;
+  // servo_pntr.rocketStatePointer = &rocketState;
+  // servo_pntr.lowgSensorDataPointer = sensor_pointers.sensorDataPointer;
+  // servo_pntr.lowgDataloggerTHDVarsPointer = sensor_pointers.dataloggerTHDVarsPointer;
 
   //lowGimu setup
   if (lowGimu.beginSPI(LSM9DS1_AG_CS, LSM9DS1_M_CS) == false) // note, we need to sent this our CS pins (defined above)
@@ -317,13 +335,14 @@ void setup() {
     char file_extension[6] = ".dat";
 
     char data_name[16] = "data";
-    sensor_pointers.dataloggerTHDVarsPointer->dataFile = SD.open(sd_file_namer(data_name, file_extension),O_CREAT | O_WRITE | O_TRUNC);
-    sensor_pointers.dataloggerTHDVarsPointer->dataFile.println("ax,ay,az,gx,gy,gz,mx,my,mz,ts_lowg,"
+    sensor_pointers.dataloggerTHDVarsPointer.dataFile = SD.open(sd_file_namer(data_name, file_extension),O_CREAT | O_WRITE | O_TRUNC);
+    sensor_pointers.dataloggerTHDVarsPointer.dataFile.println("ax,ay,az,gx,gy,gz,mx,my,mz,ts_lowg,"
                                                                "hg_ax,hg_ay,hg_az,ts_highg,"
                                                                "latitude,longitude,altitude,GPS Lock,ts_gps,"
                                                                "state_q0,state_q1,state_q2,state_q3,state_x,state_y,state_z,state_vx,state_vy,state_vz,"
                                                                "state_ax,state_ay,state_az,state_omegax,state_omegay,state_omegaz,state_latitude,state_longitude,ts_state,"
                                                                "rocketState,ts_RS");
+    sensor_pointers.dataloggerTHDVarsPointer.dataFile.flush();
     // Serial.println(lowg_datalogger_THD_vars.dataFile.name());
 
     

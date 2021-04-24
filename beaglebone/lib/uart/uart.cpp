@@ -25,6 +25,9 @@
   * DESCRIPTION:    opens file for uart hardware and performs initialization
   * INPUTS:         port -- linux port filename
   * RETURNS:        linux file descriptor on success, -1 on failure
+  * 
+  * Look at linux man pages for the termios library for explanations of fields
+  * https://man7.org/linux/man-pages/man3/termios.3.html
   */
 int UART::uart_init(char* port) {
 
@@ -57,8 +60,9 @@ int UART::uart_init(char* port) {
     // tty.c_oflag &= ~OXTABS; // Prevent conversion of tabs to spaces (NOT PRESENT ON LINUX)
     // tty.c_oflag &= ~ONOEOT; // Prevent removal of C-d chars (0x004) in output (NOT PRESENT ON LINUX)
 
-    tty.c_cc[VTIME] = 10;    // Wait for up to 1s (10 deciseconds), returning as soon as any data is received.
-    tty.c_cc[VMIN] = 0;
+    // tty.c_cc[VTIME] = 10;    // Wait for up to 1s (10 deciseconds), returning as soon as any data is received.
+    tty.c_cc[VTIME] = 0;     // Wait indefinitely until the minimum number of bytes have been read.
+    tty.c_cc[VMIN] = 71;     // Only return when this minimum number of bytes are received.
 
     // Set in/out baud rate to be 9600. NEEDS SAME BAUD RATE AS TEENSY
     // Remember we will need to test for the optimal speed once the teensy's are set up.
@@ -127,6 +131,7 @@ dataPacket_t* UART::uart_readPacket() {
 		startIdx = sentinel_detect();
 		if (startIdx < 0) return NULL;
 	}
+	printf("%ld\n",startIdx);
 
 	for (int32_t idx = startIdx; idx < INPUT_BUF_SIZE; ++idx) {
 		packetBuf[packet_bytes_received] = input_buf[idx];
@@ -135,6 +140,10 @@ dataPacket_t* UART::uart_readPacket() {
 		if (packet_bytes_received == PACKET_SIZE) {
 			packet_bytes_received = 0;
 			sentinel_detected = false;
+			// for (int i = 0; i < sizeof(packetBuf); ++i) {
+			// 	printf("0x%.2X\t",packetBuf[i]);
+			// }
+			// printf("\n");
 			return (dataPacket_t*) packetBuf;
 		}
 	}
@@ -170,7 +179,7 @@ int32_t UART::sentinel_detect() {
 				if (input_buf[i] == SENTINEL_3) {
 					fsm_state = 0;
 					sentinel_detected = true;
-					// printf("##### SENTINEL DETECTED #####\n");
+					printf("##### SENTINEL DETECTED #####\n");
 					if (i == INPUT_BUF_SIZE-1) {
 						return 0;
 					}

@@ -39,36 +39,36 @@ struct gpsData {
 };
 
 struct stateData {
-    float state_q0;
-    float state_q1;
-    float state_q2;
-    float state_q3;
+    float state_q0 = 0;
+    float state_q1 = 0;
+    float state_q2 = 0;
+    float state_q3 = 0;
 
-    float state_x;
-    float state_y;
-    float state_z;
+    float state_x = 0;
+    float state_y = 0;
+    float state_z = 0;
 
-    float state_vx;
-    float state_vy;
-    float state_vz;
+    float state_vx = 0;
+    float state_vy = 0;
+    float state_vz = 0;
 
-    float state_ax;
-    float state_ay;
-    float state_az;
+    float state_ax = 0;
+    float state_ay = 0;
+    float state_az = 0;
 
-    float state_omegax;
-    float state_omegay;
-    float state_omegaz;
+    float state_omegax = 0;
+    float state_omegay = 0;
+    float state_omegaz = 0;
 
-    float state_latitude;
-    float state_longitude;
+    float state_latitude = 0;
+    float state_longitude = 0;
 
-    int32_t timeStamp_state;
+    int32_t timeStamp_state = 0;
 };
 
 struct rocketStateData {
-    FSM_State rocketState;
-    int32_t timeStamp_RS;
+    FSM_State rocketState = STATE_INIT;
+    int32_t timeStamp_RS = 0;
 };
 
 
@@ -129,6 +129,7 @@ struct datalogger_THD {
 
     SEMAPHORE_DECL(fifoData_RS,0);
     SEMAPHORE_DECL(fifoSpace_RS, FIFO_SIZE);
+    
 
     uint16_t fifoHead_lowG = 0;
     uint16_t fifoHead_highG = 0;

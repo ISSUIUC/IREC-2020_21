@@ -33,7 +33,7 @@ static THD_FUNCTION(lowgIMU_THD, arg) {
   while(true){
 
     #ifdef THREAD_DEBUG
-      Serial.println("### Low G IMU thread entrance");
+      // Serial.println("### Low G IMU thread entrance");
     #endif
 
     chSysLock();
@@ -42,7 +42,7 @@ static THD_FUNCTION(lowgIMU_THD, arg) {
     pointer_struct->lowGimuPointer->readMag();
     chSysUnlock();
 
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_lowG);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_lowG);
     pointer_struct->sensorDataPointer->lowG_data.timeStamp_lowG = chVTGetSystemTime();
 
     //acceleration in Gs
@@ -58,7 +58,7 @@ static THD_FUNCTION(lowgIMU_THD, arg) {
     pointer_struct->sensorDataPointer->lowG_data.my = pointer_struct->lowGimuPointer->calcMag(pointer_struct->lowGimuPointer->my);
     pointer_struct->sensorDataPointer->lowG_data.mz = pointer_struct->lowGimuPointer->calcMag(pointer_struct->lowGimuPointer->mz);
     //!Unlocking &dataMutex
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_lowG);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_lowG);
 
     #ifdef LOWGIMU_DEBUG
       Serial.println("------------- LOW-G THREAD ---------------");
@@ -84,19 +84,19 @@ static THD_FUNCTION(lowgIMU_THD, arg) {
 
     // logData(&dataFile, &sensorData, rocketState);
     // add the data to the buffer here!
-    if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_lowG, TIME_IMMEDIATE) != MSG_OK) {
-        pointer_struct->dataloggerTHDVarsPointer->bufferErrors_lowG++;
+    if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_lowG, TIME_IMMEDIATE) != MSG_OK) {
+        pointer_struct->dataloggerTHDVarsPointer.bufferErrors_lowG++;
         digitalWrite(LED_BUILTIN, HIGH);
         continue;
     }
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_lowG);
-    pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoHead_lowG].lowG_data = pointer_struct->sensorDataPointer->lowG_data;
-    pointer_struct->dataloggerTHDVarsPointer->bufferErrors_lowG = 0;
-    pointer_struct->dataloggerTHDVarsPointer->fifoHead_lowG = pointer_struct->dataloggerTHDVarsPointer->fifoHead_lowG < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer->fifoHead_lowG + 1 : 0;
-    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoData_lowG);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_lowG);
+    pointer_struct->dataloggerTHDVarsPointer.fifoArray[pointer_struct->dataloggerTHDVarsPointer.fifoHead_lowG].lowG_data = pointer_struct->sensorDataPointer->lowG_data;
+    pointer_struct->dataloggerTHDVarsPointer.bufferErrors_lowG = 0;
+    pointer_struct->dataloggerTHDVarsPointer.fifoHead_lowG = pointer_struct->dataloggerTHDVarsPointer.fifoHead_lowG < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer.fifoHead_lowG + 1 : 0;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoData_lowG);
 
     //!Unlocking &dataMutex
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_lowG);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_lowG);
 
     chThdSleepMilliseconds(6);
   }
@@ -113,14 +113,15 @@ static THD_FUNCTION(gps_THD, arg){
   while(true){
     
     #ifdef THREAD_DEBUG
-      Serial.println("### GPS thread entrance");
+      // Serial.println("### GPS thread entrance");
     #endif
 
     chSysLock();
     pointer_struct->GPSPointer->update_data();
     chSysUnlock();
 
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_GPS);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_GPS);
+    
 
     pointer_struct->sensorDataPointer->gps_data.timeStamp_GPS = chVTGetSystemTime();
     //Have the availability to wait until a lock is aquired with gps.get_position_lock();
@@ -129,7 +130,7 @@ static THD_FUNCTION(gps_THD, arg){
     pointer_struct->sensorDataPointer->gps_data.altitude = pointer_struct->GPSPointer->get_altitude();
     pointer_struct->sensorDataPointer->gps_data.posLock = pointer_struct->GPSPointer->get_position_lock();
     //!Unlocking &dataMutex
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_GPS);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_GPS);
 
     
 
@@ -163,23 +164,23 @@ static THD_FUNCTION(gps_THD, arg){
     #endif
 
     // add the data to the buffer here!
-    if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_GPS, TIME_IMMEDIATE) != MSG_OK) {
-        pointer_struct->dataloggerTHDVarsPointer->bufferErrors_GPS++;
+    if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_GPS, TIME_IMMEDIATE) != MSG_OK) {
+        pointer_struct->dataloggerTHDVarsPointer.bufferErrors_GPS++;
         digitalWrite(LED_BUILTIN, HIGH);
         continue;
     }
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_GPS);
-    pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoHead_GPS].gps_data = pointer_struct->sensorDataPointer->gps_data;
-    pointer_struct->dataloggerTHDVarsPointer->bufferErrors_GPS = 0;
-    pointer_struct->dataloggerTHDVarsPointer->fifoHead_GPS = pointer_struct->dataloggerTHDVarsPointer->fifoHead_GPS < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer->fifoHead_GPS + 1 : 0;
-    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoData_GPS);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_GPS);
+    pointer_struct->dataloggerTHDVarsPointer.fifoArray[pointer_struct->dataloggerTHDVarsPointer.fifoHead_GPS].gps_data = pointer_struct->sensorDataPointer->gps_data;
+    pointer_struct->dataloggerTHDVarsPointer.bufferErrors_GPS = 0;
+    pointer_struct->dataloggerTHDVarsPointer.fifoHead_GPS = pointer_struct->dataloggerTHDVarsPointer.fifoHead_GPS < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer.fifoHead_GPS + 1 : 0;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoData_GPS);
  
 
     //!Unlocking &dataMutex
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_GPS);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_GPS);
 
     #ifdef THREAD_DEBUG
-      Serial.println("### GPS thread exit");
+      // Serial.println("### GPS thread exit");
     #endif
 
     chThdSleepMilliseconds(6); // Sensor DAQ @ ~100 Hz
@@ -197,7 +198,7 @@ static THD_FUNCTION(highgIMU_THD, arg){
   while(true){
 
     #ifdef THREAD_DEBUG
-      Serial.println("### High G IMU thread entrance");
+      // Serial.println("### High G IMU thread entrance");
     #endif
 
     
@@ -206,7 +207,7 @@ static THD_FUNCTION(highgIMU_THD, arg){
     pointer_struct->highGimuPointer->update_data();
     chSysUnlock();
 
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_highG);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_highG);
 
     pointer_struct->sensorDataPointer->highG_data.timeStamp_highG = chVTGetSystemTime();
 
@@ -215,7 +216,7 @@ static THD_FUNCTION(highgIMU_THD, arg){
     pointer_struct->sensorDataPointer->highG_data.hg_ay = pointer_struct->highGimuPointer->get_y_gforce();
     pointer_struct->sensorDataPointer->highG_data.hg_az = pointer_struct->highGimuPointer->get_z_gforce();
 
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_highG);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_highG);
 
     #ifdef HIGHGIMU_DEBUG
       Serial.println("------------- HIGH-G THREAD ---------------");
@@ -228,19 +229,19 @@ static THD_FUNCTION(highgIMU_THD, arg){
     #endif
 
     // add the data to the buffer here!
-    if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_highG, TIME_IMMEDIATE) != MSG_OK) {
-        pointer_struct->dataloggerTHDVarsPointer->bufferErrors_highG++;
+    if (chSemWaitTimeout(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_highG, TIME_IMMEDIATE) != MSG_OK) {
+        pointer_struct->dataloggerTHDVarsPointer.bufferErrors_highG++;
         digitalWrite(LED_BUILTIN, HIGH);
         continue;
     }
-    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_highG);
-    pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoHead_highG].highG_data = pointer_struct->sensorDataPointer->highG_data;
-    pointer_struct->dataloggerTHDVarsPointer->bufferErrors_highG = 0;
-    pointer_struct->dataloggerTHDVarsPointer->fifoHead_highG = pointer_struct->dataloggerTHDVarsPointer->fifoHead_highG < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer->fifoHead_highG + 1 : 0;
-    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoData_highG);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_highG);
+    pointer_struct->dataloggerTHDVarsPointer.fifoArray[pointer_struct->dataloggerTHDVarsPointer.fifoHead_highG].highG_data = pointer_struct->sensorDataPointer->highG_data;
+    pointer_struct->dataloggerTHDVarsPointer.bufferErrors_highG = 0;
+    pointer_struct->dataloggerTHDVarsPointer.fifoHead_highG = pointer_struct->dataloggerTHDVarsPointer.fifoHead_highG < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer.fifoHead_highG + 1 : 0;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoData_highG);
 
 
-    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_highG);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_highG);
 
     chThdSleepMilliseconds(6);
   }
