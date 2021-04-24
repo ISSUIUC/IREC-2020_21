@@ -14,11 +14,7 @@ struct pointers {
 
     sensorDataStruct_t *sensorDataPointer;
 
-<<<<<<< HEAD
-    datalogger_THD *dataloggerTHDVarsPointer;
-=======
     datalogger_THD dataloggerTHDVarsPointer;
->>>>>>> main_cleanup
 };
 
 /**
