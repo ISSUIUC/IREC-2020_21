@@ -31,14 +31,14 @@ for dat_file in dats_to_convert:
 		data_split = data.split(b'\r\n')
 		write_to_file(csvwriter,data_split[0].decode('ascii').split(','))
 
-		packet_length = 68
+		packet_length = 156
 		data_rejoined = b'\r\n'.join(data_split[1:])
 		sensor_datapackets = [data_rejoined[i:i+packet_length] for i in range(0,len(data_rejoined),packet_length)]
 		# print(sensor_datapackets)
 		for datapacket in sensor_datapackets:
-			data_list = list(struct.unpack('f'*15,datapacket[:60]))
+			data_list = list(struct.unpack('f'*17,datapacket[:68]))
 
-			gps_lock_int = struct.unpack('h',datapacket[60:62])[0]
+			gps_lock_int = struct.unpack('h',datapacket[68:70])[0]
 			if gps_lock_int == 1:
 				data_list.append(True)
 			elif gps_lock_int == 0:
@@ -46,13 +46,15 @@ for dat_file in dats_to_convert:
 			else:
 				print('Failed to interpret gps lock data.',gps_lock_int)
 
-			rocket_state_int = struct.unpack('h',datapacket[62:64])[0]
+			data_list += list(struct.unpack('f'*20,datapacket[70:150]))
+
+			rocket_state_int = struct.unpack('h',datapacket[150:152])[0]
 			# print(rocket_state_int)
 			data_list.append(rocket_state_int)
 
-			print(len(datapacket[64:]))
+			# print(len(datapacket[64:]))
 			try:
-				timestamp = struct.unpack('i',datapacket[64:])[0]
+				timestamp = struct.unpack('i',datapacket[152:])[0]
 				data_list.append(timestamp)
 			except:
 				data_list.append('error')

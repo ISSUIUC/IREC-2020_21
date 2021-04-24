@@ -9,6 +9,8 @@
 
 #include <ChRt.h>
 
+#include "sensors.h"
+
 
 
 #define THREAD_DEBUG
@@ -22,23 +24,53 @@ MUTEX_DECL(SD_Card_Mutex);
  * 
  */
 static THD_FUNCTION(dataLogger_THD, arg){
-  struct datalogger_THD *datalogger_struct = (struct datalogger_THD *)arg;
+  struct pointers *pointer_struct = (struct pointers *)arg;
   while(true){
     #ifdef THREAD_DEBUG
         Serial.println("Data Logging thread entrance");
     #endif
-    chSemWait(&datalogger_struct->fifoData);
-    chMtxLock(&datalogger_struct->dataMutex);
+    sensorDataStruct_t current_data;
 
-    sensorDataStruct_t current_data = datalogger_struct->fifoArray[datalogger_struct->fifoTail];
-    sensors sensorType = datalogger_struct->sensor_type;
+    // Copy low G data
+    chSemWait(&pointer_struct->dataloggerTHDVarsPointer->fifoData_lowG);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_lowG);
+    current_data.lowG_data = pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoTail_all].lowG_data;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_lowG);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_lowG);
 
-    datalogger_struct->fifoTail = datalogger_struct->fifoTail < (FIFO_SIZE - 1) ? datalogger_struct->fifoTail + 1 : 0;
-    chSemSignal(&datalogger_struct->fifoSpace);
-    chMtxUnlock(&datalogger_struct->dataMutex);
+    // Copy high G data
+    chSemWait(&pointer_struct->dataloggerTHDVarsPointer->fifoData_highG);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_highG);
+    current_data.highG_data = pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoTail_all].highG_data;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_highG);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_highG);
+
+    // Copy gps data
+    chSemWait(&pointer_struct->dataloggerTHDVarsPointer->fifoData_GPS);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_GPS);
+    current_data.gps_data = pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoTail_all].gps_data;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_GPS);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_GPS);
+
+    // Copy state data
+    chSemWait(&pointer_struct->dataloggerTHDVarsPointer->fifoData_state);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_state);
+    current_data.state_data = pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoTail_all].state_data;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_state);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_state);
+
+    // Copy rocketState data
+    chSemWait(&pointer_struct->dataloggerTHDVarsPointer->fifoData_RS);
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_RS);
+    current_data.rocketState_data = pointer_struct->dataloggerTHDVarsPointer->fifoArray[pointer_struct->dataloggerTHDVarsPointer->fifoTail_all].rocketState_data;
+    chSemSignal(&pointer_struct->dataloggerTHDVarsPointer->fifoSpace_RS);
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_RS);
+
+    // Increment fifoTail after all data has been transfered to current_data
+    pointer_struct->dataloggerTHDVarsPointer->fifoTail_all = pointer_struct->dataloggerTHDVarsPointer->fifoTail_all < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer->fifoTail_all + 1 : 0;
     
     chMtxLock(&SD_Card_Mutex);
-    logData(&datalogger_struct->dataFile, &current_data, sensorType);
+    logData(&pointer_struct->dataloggerTHDVarsPointer->dataFile, &current_data);
     chMtxUnlock(&SD_Card_Mutex);
 
     // #ifdef THREAD_DEBUG
@@ -114,7 +146,7 @@ char* sd_file_namer(char* fileName, char* fileExtensionParam) {
  * @param sensorType Enum containing the type of sensor. Controls which fields are logged.
  */
 int32_t flush_iterator = 0;
-void logData(File* dataFile, sensorDataStruct_t* data, sensors sensorType) {
+void logData(File* dataFile, sensorDataStruct_t* data) {
     // Write raw bytes to SD card.
     dataFile->write((const uint8_t *)data,sizeof(*data));
 

@@ -10,13 +10,7 @@
 #include "dataStructs.h"
 
 
-
-/**
- * @brief A struct to hold all of the data that could come from any of the sensors
- * 
- */
-struct sensorDataStruct_t {
-    //! data for lowGimu
+struct lowGData {
     float ax;
     float ay;
     float az;
@@ -26,24 +20,80 @@ struct sensorDataStruct_t {
     float mx;
     float my;
     float mz;
+    int32_t timeStamp_lowG;
+};
 
-    //! data for highGimu accel data (hg_x, hg_y, hg_z) 
+struct highGData {
     float hg_ax;
     float hg_ay;
     float hg_az;
+    int32_t timeStamp_highG;
+};
+
+struct gpsData {
+    float latitude;
+    float longitude;
+    float altitude;
+    bool posLock;
+    int32_t timeStamp_GPS;
+};
+
+struct stateData {
+    float state_q0;
+    float state_q1;
+    float state_q2;
+    float state_q3;
+
+    float state_x;
+    float state_y;
+    float state_z;
+
+    float state_vx;
+    float state_vy;
+    float state_vz;
+
+    float state_ax;
+    float state_ay;
+    float state_az;
+
+    float state_omegax;
+    float state_omegay;
+    float state_omegaz;
+
+    float state_latitude;
+    float state_longitude;
+
+    int32_t timeStamp_state;
+};
+
+struct rocketStateData {
+    FSM_State rocketState;
+    int32_t timeStamp_RS;
+};
+
+
+/**
+ * @brief A struct to hold all of the data that could come from any of the sensors
+ * 
+ */
+struct sensorDataStruct_t {
+    //! data for lowGimu
+    lowGData lowG_data;
+
+    //! data for highGimu accel data (hg_x, hg_y, hg_z) 
+    highGData highG_data;
     // int16_t pt1;
     // int16_t pt2;
     // int16_t pt3;
 
     //GPS DATA
-    float latitude;
-    float longitude;
-    float altitude;
-    bool posLock;
+    gpsData gps_data;
+
+    // State variables
+    stateData state_data;
     
-    // Data for all
-    FSM_State rocketState;
-    int32_t timeStamp;
+    // Rocket State
+    rocketStateData rocketState_data;
 
 };
 
@@ -65,21 +115,44 @@ enum sensors {
  */
 struct datalogger_THD {
     //semaphore_t fifoData;
-    SEMAPHORE_DECL(fifoData, 0);
-    SEMAPHORE_DECL(fifoSpace, FIFO_SIZE);
+    SEMAPHORE_DECL(fifoData_lowG, 0);
+    SEMAPHORE_DECL(fifoSpace_lowG, FIFO_SIZE);
+    
+    SEMAPHORE_DECL(fifoData_highG,0);
+    SEMAPHORE_DECL(fifoSpace_highG, FIFO_SIZE);
 
-    uint16_t fifoHead = 0;
-    uint16_t fifoTail = 0;
+    SEMAPHORE_DECL(fifoData_GPS,0);
+    SEMAPHORE_DECL(fifoSpace_GPS, FIFO_SIZE);
 
-    uint16_t bufferErrors = 0;
+    SEMAPHORE_DECL(fifoData_state,0);
+    SEMAPHORE_DECL(fifoSpace_state, FIFO_SIZE);
 
-    MUTEX_DECL(dataMutex);
+    SEMAPHORE_DECL(fifoData_RS,0);
+    SEMAPHORE_DECL(fifoSpace_RS, FIFO_SIZE);
+
+    uint16_t fifoHead_lowG = 0;
+    uint16_t fifoHead_highG = 0;
+    uint16_t fifoHead_GPS = 0;
+    uint16_t fifoHead_state = 0;
+    uint16_t fifoHead_RS = 0;
+
+    uint16_t fifoTail_all = 0;
+
+    uint16_t bufferErrors_lowG = 0;
+    uint16_t bufferErrors_highG = 0;
+    uint16_t bufferErrors_GPS = 0;
+    uint16_t bufferErrors_state = 0;
+    uint16_t bufferErrors_RS = 0;
+
+    MUTEX_DECL(dataMutex_lowG);
+    MUTEX_DECL(dataMutex_highG);
+    MUTEX_DECL(dataMutex_GPS);
+    MUTEX_DECL(dataMutex_state);
+    MUTEX_DECL(dataMutex_RS);
 
     sensorDataStruct_t fifoArray[FIFO_SIZE];
 
     sensorDataStruct_t current_data;
-
-    sensors sensor_type;
 
     File dataFile;
 };
@@ -88,6 +161,6 @@ struct datalogger_THD {
 
 char* sd_file_namer(char* inputName, char* fileExtensionParam);
 
-void logData(File* dataFile, sensorDataStruct_t* data, sensors sensorType);
+void logData(File* dataFile, sensorDataStruct_t* data);
 
 #endif

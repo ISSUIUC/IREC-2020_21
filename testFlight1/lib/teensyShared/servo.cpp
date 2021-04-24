@@ -20,17 +20,19 @@
 #include "thresholds.h"
 #include "pins.h"
 #include "servo.h"
+#include "sensors.h"
 
 PWMServo servo_cw; //Servo that controlls roll in the clockwise direction
 PWMServo servo_ccw; //Servo that controlls roll in the counter clockwise direction
 
 float flap_drag;
 float native_drag;
+float K_gain;
 
 /**
  * @brief A function to keep the value sent to the servo between 0 and 180 degrees.
  * 
- * @param value The value determined by the control algorithm.
+ * @param value The anglevalue determined by the control algorithm.
  */
 void round_off_angle(int &value) {
   if (value > 180) {
@@ -42,26 +44,53 @@ void round_off_angle(int &value) {
 }
 
 /**
+ * @brief A function to convert the control length input to the servo angle
+ * 
+ * @param len The length input given by the control system
+ */
+float len2ang(float len) {
+  ///convert from the length input to the angle required for that length
+  //this should be based on emperical testing
+  //TODO
+  return 0;
+}
+
+/**
  * @brief Construct a new thd function object to control the servo.
  * 
  * @param arg A struct containing pointers to objects needed to run the thread.
  * 
  */
 static THD_FUNCTION(servo_THD, arg){
-  struct servo_PNTR *pointer_struct = (struct servo_PNTR *)arg;
+  struct pointers *pointer_struct = (struct pointers *)arg;
   bool active_control = false;
   while(true){
-
     #ifdef THREAD_DEBUG
       Serial.println("### Servo thread entrance");
     #endif
     
-    int ccw_angle = 90;
+    int ccw_angle = -90; // Give different starting values 
     int cw_angle = 90;
     active_control = false;
 
-    switch(*pointer_struct->rocketStatePointer) {
-      case STATE_INIT :
+    sensorDataStruct_t *current_data;
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_state);
+    current_data = pointer_struct->sensorDataPointer->state_data;
+
+    //Get state data
+    float roll = current_data.state_omegax;
+    float vx = current_data.state_vx;
+    float x = current_data.state_x;
+
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_state);
+    float u[1][2] = {{}}; //Inputs to the servo
+
+    chMtxLock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_RS);
+    FSM_State currentRocketState = pointer_struct->sensorDataPointer->rocketState_data.rocketState;
+    chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer->dataMutex_RS);
+
+    switch(currentRocketState) {
+      case STATE_INIT:
         active_control = true;
         break;
       case STATE_IDLE:
@@ -85,11 +114,10 @@ static THD_FUNCTION(servo_THD, arg){
     }
     // turns active control off if not in takeoff/coast sequence
     if (active_control) {
-      chMtxLock(&pointer_struct->lowgDataloggerTHDVarsPointer->dataMutex);
-      cw_angle = pointer_struct->lowgSensorDataPointer->gz;
-      ccw_angle = pointer_struct->lowgSensorDataPointer->gz;
-      chMtxUnlock(&pointer_struct->lowgDataloggerTHDVarsPointer->dataMutex);
-
+      //u = -Kx
+      //length to angle conversion
+      ccw_angle = len2ang(u[0][0]);
+      cw_angle = len2ang(u[1][0]);
     } else {
       //Turns active control off if not in coast state.
       cw_angle = 0;
