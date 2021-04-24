@@ -36,7 +36,7 @@ static void toggle_read() {
   chSysUnlockFromISR();
   Serial.println("reading");
   int received = digitalRead(/*INSERT PIN*/ READ_PORT);
-  Serial.println("read: %d", received);
+  Serial.println(received);
   if (received != read_val) {
     num_missed++;
   } else {
