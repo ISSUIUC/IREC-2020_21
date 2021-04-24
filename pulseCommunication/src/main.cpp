@@ -14,12 +14,12 @@ static THD_WORKING_AREA(pulse_receiver_WA, 512);
 bool write_val;
 static virtual_timer_t write_vt;
 static void toggle_write() {
-  Serial.println("writing");
-  digitalWrite(/*INSERT PIN*/ WRITE_PORT, write_val);
-  write_val = !write_val;
   chSysLockFromISR();
   chVTSetI(&write_vt, TIME_MS2I(INTERVAL_MS), toggle_write, NULL);
   chSysUnlockFromISR();
+  Serial.println("writing");
+  digitalWrite(/*INSERT PIN*/ WRITE_PORT, write_val);
+  write_val = !write_val;
 }
 static THD_FUNCTION(pulse_sender_THD, arg) {
   write_val = 0;
@@ -31,6 +31,9 @@ bool read_val;
 int num_missed;
 static virtual_timer_t read_vt;
 static void toggle_read() {
+  chSysLockFromISR();
+  chVTSetI(&read_vt, TIME_MS2I(INTERVAL_MS), toggle_read, NULL);
+  chSysUnlockFromISR();
   Serial.println("reading");
   int received = digitalRead(/*INSERT PIN*/ READ_PORT);
   if (received != read_val) {
@@ -44,9 +47,6 @@ static void toggle_read() {
     Serial.println("ERROR!");
     return;
   }
-  chSysLockFromISR();
-  chVTSetI(&read_vt, TIME_MS2I(INTERVAL_MS), toggle_read, NULL);
-  chSysUnlockFromISR();
 }
 static THD_FUNCTION(pulse_receiver_THD, arg) {
   read_val = digitalRead(/*INSERT PIN*/ READ_PORT);;
