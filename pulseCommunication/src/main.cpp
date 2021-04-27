@@ -3,10 +3,13 @@
 
 #include <ChRt.h>
 #include <Arduino.h>
-#define INTERVAL_MS 500
+#define INTERVAL_MS 10
 #define ERR_THRESHOLD 60
-#define READ_PORT 27
-#define WRITE_PORT 26
+// #define READ_PORT 27
+// #define WRITE_PORT 26
+
+#define READ_PORT 26
+#define WRITE_PORT 27
 
 static THD_WORKING_AREA(pulse_sender_WA, 512);
 static THD_WORKING_AREA(pulse_receiver_WA, 512);
@@ -18,7 +21,7 @@ static void toggle_write() {
   chVTSetI(&write_vt, TIME_MS2I(INTERVAL_MS), toggle_write, NULL);
   chSysUnlockFromISR();
   digitalWrite(/*INSERT PIN*/ WRITE_PORT, write_val);
-  Serial.printf("writing %d\n", write_val);
+  Serial.printf("writing %d\n\r", write_val);
   write_val = !write_val;
 }
 static THD_FUNCTION(pulse_sender_THD, arg) {
@@ -35,7 +38,7 @@ static void toggle_read() {
   chVTSetI(&read_vt, TIME_MS2I(INTERVAL_MS), toggle_read, NULL);
   chSysUnlockFromISR();
   int received = digitalRead(/*INSERT PIN*/ READ_PORT);
-  Serial.printf("read %d\n", received);
+  Serial.printf("read %d\n\r", received);
   if (received != read_val) {
     num_missed++;
   } else {
@@ -69,6 +72,12 @@ void chSetup(){
 
 void setup() {
   Serial.begin(115200);
+
+  // while (!Serial) {}
+
+  // pinMode(LED_WHITE, OUTPUT);
+  // digitalWrite(LED_WHITE_HIGH);
+
   Serial.println("Starting ChibiOS");
   pinMode(READ_PORT, INPUT);
   pinMode(WRITE_PORT, OUTPUT);
