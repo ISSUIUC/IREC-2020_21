@@ -7,6 +7,15 @@
 
 #include "dataLog.h"
 
+struct pointers {
+    LSM9DS1 *lowGimuPointer;
+    KX134 *highGimuPointer;
+    ZOEM8Q0 *GPSPointer;
+
+    sensorDataStruct_t *sensorDataPointer;
+
+    datalogger_THD dataloggerTHDVarsPointer;
+};
 
 /**
  * @brief A struct containing pointers needed by the lowgIMU_THD
