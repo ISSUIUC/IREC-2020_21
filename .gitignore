@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# VSCode Crap
+*.vscode
+**/.vscode
+
+# Platformio Temporaries
+*.pio
+**/.pio
