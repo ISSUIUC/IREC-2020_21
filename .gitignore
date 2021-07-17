@@ -34,3 +34,7 @@
 # VSCode Crap
 *.vscode
 **/.vscode
+
+# Platformio Temporaries
+*.pio
+**/.pio
