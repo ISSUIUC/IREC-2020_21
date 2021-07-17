@@ -15,7 +15,6 @@
 
 #include "Arduino.h"
 
-
 /******************************************************************************/
 /* ZOEM8Q0 CLASS DEFINITION */
 
@@ -53,9 +52,6 @@ class ZOEM8Q0 {
 public:
     /* Constructor. Initializes latitude, longitude, altitude, and position_lock */
     ZOEM8Q0();
-
-    /* Destructor */
-    ~ZOEM8Q0();
 
     /* Begins SPI communication with gps module. */
     void beginSPI(uint16_t CS_pin);

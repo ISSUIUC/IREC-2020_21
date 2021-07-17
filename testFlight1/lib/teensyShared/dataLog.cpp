@@ -19,8 +19,8 @@ MUTEX_DECL(SD_Card_Mutex);
 /**
  * @brief Construct a new thd function object to log data to the SD card.
  * 
- * @param arg Contains info on the ring buffer containing the data and mutexes protecting it.
- *            This allows the same function to be reused for all data types.
+ * @param arg Contains info on the ring buffers containing the data and mutexes protecting it.
+ *            This allows data to be passed to the function from another file.
  * 
  */
 static THD_FUNCTION(dataLogger_THD, arg){
@@ -29,6 +29,7 @@ static THD_FUNCTION(dataLogger_THD, arg){
     #ifdef THREAD_DEBUG
         Serial.println("Data Logging thread entrance");
     #endif
+    // Initialize a new data struct object to hold the data that will be logged
     sensorDataStruct_t current_data;
 
     // Copy low G data
@@ -45,16 +46,12 @@ static THD_FUNCTION(dataLogger_THD, arg){
     chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_highG);
     chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_highG);
 
-    Serial.println("Hi1");
-
     // Copy gps data
     chSemWait(&pointer_struct->dataloggerTHDVarsPointer.fifoData_GPS);
     chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_GPS);
     current_data.gps_data = pointer_struct->dataloggerTHDVarsPointer.fifoArray[pointer_struct->dataloggerTHDVarsPointer.fifoTail_all].gps_data;
     chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_GPS);
     chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_GPS);
-
-    Serial.println("Hi2");
 
     // Copy state data
     // chSemWait(&pointer_struct->dataloggerTHDVarsPointer.fifoData_state);
@@ -63,23 +60,17 @@ static THD_FUNCTION(dataLogger_THD, arg){
     // chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_state);
     // chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_state);
 
-    Serial.println("Hi3");
-
     // Copy rocketState data
     chSemWait(&pointer_struct->dataloggerTHDVarsPointer.fifoData_RS);
-    Serial.println("Hi3");
     chMtxLock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
     current_data.rocketState_data = pointer_struct->dataloggerTHDVarsPointer.fifoArray[pointer_struct->dataloggerTHDVarsPointer.fifoTail_all].rocketState_data;
     chSemSignal(&pointer_struct->dataloggerTHDVarsPointer.fifoSpace_RS);
     chMtxUnlock(&pointer_struct->dataloggerTHDVarsPointer.dataMutex_RS);
 
-    Serial.println("Hi4");
-
     // Increment fifoTail after all data has been transfered to current_data
     pointer_struct->dataloggerTHDVarsPointer.fifoTail_all = pointer_struct->dataloggerTHDVarsPointer.fifoTail_all < (FIFO_SIZE - 1) ? pointer_struct->dataloggerTHDVarsPointer.fifoTail_all + 1 : 0;
-    
-    Serial.println("Hi5");
 
+    // Log all data that was copied from the buffer onto the sd card
     chMtxLock(&SD_Card_Mutex);
     logData(&pointer_struct->dataloggerTHDVarsPointer.dataFile, &current_data);
     chMtxUnlock(&SD_Card_Mutex);
@@ -153,7 +144,6 @@ char* sd_file_namer(char* fileName, char* fileExtensionParam) {
  * 
  * @param dataFile File on SD card. Object from SD library.
  * @param data Data structure to be logged.
- * @param sensorType Enum containing the type of sensor. Controls which fields are logged.
  */
 int32_t flush_iterator = 0;
 void logData(File* dataFile, sensorDataStruct_t* data) {

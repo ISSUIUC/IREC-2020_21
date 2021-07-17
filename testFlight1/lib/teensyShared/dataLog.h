@@ -9,7 +9,10 @@
 
 #include "dataStructs.h"
 
-
+/**
+ * @brief Structure for all values collected from the low g sensor
+ * 
+ */
 struct lowGData {
     float ax;
     float ay;
@@ -23,6 +26,10 @@ struct lowGData {
     int32_t timeStamp_lowG;
 };
 
+/**
+ * @brief Structure for all values collected from the high g sensor
+ * 
+ */
 struct highGData {
     float hg_ax;
     float hg_ay;
@@ -30,6 +37,10 @@ struct highGData {
     int32_t timeStamp_highG;
 };
 
+/**
+ * @brief Structure for all values collected from the gps
+ * 
+ */
 struct gpsData {
     float latitude;
     float longitude;
@@ -38,6 +49,10 @@ struct gpsData {
     int32_t timeStamp_GPS;
 };
 
+/**
+ * @brief Structure for all values tracked for state estimation
+ * 
+ */
 struct stateData {
     float state_q0 = 0;
     float state_q1 = 0;
@@ -66,6 +81,10 @@ struct stateData {
     int32_t timeStamp_state = 0;
 };
 
+/**
+ * @brief Structure for all values related to rocket state
+ * 
+ */
 struct rocketStateData {
     FSM_State rocketState = STATE_INIT;
     int32_t timeStamp_RS = 0;
@@ -82,9 +101,6 @@ struct sensorDataStruct_t {
 
     //! data for highGimu accel data (hg_x, hg_y, hg_z) 
     highGData highG_data;
-    // int16_t pt1;
-    // int16_t pt2;
-    // int16_t pt3;
 
     //GPS DATA
     gpsData gps_data;
@@ -129,7 +145,7 @@ struct datalogger_THD {
 
     SEMAPHORE_DECL(fifoData_RS,0);
     SEMAPHORE_DECL(fifoSpace_RS, FIFO_SIZE);
-    
+
 
     uint16_t fifoHead_lowG = 0;
     uint16_t fifoHead_highG = 0;

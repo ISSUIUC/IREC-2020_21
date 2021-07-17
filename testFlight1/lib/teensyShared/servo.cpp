@@ -66,7 +66,7 @@ static THD_FUNCTION(servo_THD, arg){
   bool active_control = false;
   while(true){
     #ifdef THREAD_DEBUG
-      // Serial.println("### Servo thread entrance");
+      Serial.println("### Servo thread entrance");
     #endif
     
     int ccw_angle = -90; // Give different starting values 
